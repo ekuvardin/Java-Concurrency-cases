@@ -1,0 +1,8 @@
+/.settings/
+/.results/
+.classpath
+.project
+jcstress.*
+/target/
+*.idea
+*.iml
