@@ -40,7 +40,7 @@ public class VolatileInConstructorNested {
     @Outcome(id = "43", expect = Expect.FORBIDDEN, desc = "You cann't see initialized variable 42 in constructor")
     @State
     public static class SafePublicationExample {
-        
+
         volatile SafeVol v;
 
         @Actor
@@ -64,7 +64,7 @@ public class VolatileInConstructorNested {
             }
         }
     }
-    
+
     /*
      * The main question can r1 == 42?
      * Yes it can forn fully answer see http://cs.oswego.edu/pipermail/concurrency-interest/2013-November/011954.html
@@ -77,11 +77,11 @@ public class VolatileInConstructorNested {
      * An no rules is violate.                                             
      */
     @JCStressTest
-    @Outcome(id = "0", expect = Expect.ACCEPTABLE, desc = "Works only actor2")
-    @Outcome(id = "42", expect = Expect.ACCEPTABLE_INTERESTING, desc = "Object publishing before constructor executing")
+    @Outcome(id = "0", expect = Expect.ACCEPTABLE_INTERESTING, desc = "Object publishing before constructor executing")
+    @Outcome(id = "42", expect = Expect.ACCEPTABLE, desc = "Works only actor2 then sequentially actor1")
     @State
     public static class UnsafePublicationExample {
-        
+
         SafeVol v;
 
         @Actor
