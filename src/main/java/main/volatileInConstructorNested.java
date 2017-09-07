@@ -7,7 +7,7 @@ import org.openjdk.jcstress.annotations.Outcome;
 import org.openjdk.jcstress.annotations.State;
 import org.openjdk.jcstress.infra.results.IntResult1;
 
-public class VolatileInConstructorNested {
+public class volatileInConstructorNested {
 
     /*
      * The main question can r1 == 43?
@@ -36,10 +36,10 @@ public class VolatileInConstructorNested {
      */
     @JCStressTest
     @Outcome(id = "1", expect = Expect.ACCEPTABLE, desc = "Works only actor1")
-    @Outcome(id = "42", expect = Expect.ACCEPTABLE, desc = "Actor2 writes field v.a right after actor1 create object")
-    @Outcome(id = "43", expect = Expect.FORBIDDEN, desc = "You cann't see initialized variable 42 in constructor")
+    @Outcome(id = "42", expect = Expect.ACCEPTABLE, desc = "Data races. Actor2 writes field v.a right after actor1 create object")
+    @Outcome(id = "43", expect = Expect.FORBIDDEN, desc = "You can't see initialized variable 42 in constructor")
     @State
-    public static class SafePublicationExample {
+    public static class SafeTrickyPublicationExample {
 
         volatile SafeVol v;
 
@@ -80,7 +80,7 @@ public class VolatileInConstructorNested {
     @Outcome(id = "0", expect = Expect.ACCEPTABLE_INTERESTING, desc = "Object publishing before constructor executing")
     @Outcome(id = "42", expect = Expect.ACCEPTABLE, desc = "Works only actor2 then sequentially actor1")
     @State
-    public static class UnsafePublicationExample {
+    public static class UnSafePublicationExample {
 
         SafeVol v;
 
