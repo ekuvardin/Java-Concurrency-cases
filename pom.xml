@@ -101,6 +101,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
                             <goal>shade</goal>
                         </goals>
                         <configuration>
+
                             <finalName>${uberjar.name}</finalName>
                             <transformers>
                                 <transformer

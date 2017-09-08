@@ -39,7 +39,7 @@ public class volatileInConstructorNested {
     @Outcome(id = "42", expect = Expect.ACCEPTABLE, desc = "Data races. Actor2 writes field v.a right after actor1 create object")
     @Outcome(id = "43", expect = Expect.FORBIDDEN, desc = "You can't see initialized variable 42 in constructor")
     @State
-    public static class SafeTrickyPublicationExample {
+    public static class SafePublicationExample {
 
         volatile SafeVol v;
 
@@ -74,9 +74,10 @@ public class volatileInConstructorNested {
      *      \--po--> vread(a.f, 0)
      *                    \---so---> vstore(a.f, 42)
      *                                    \---po---> store(a)
-     * An no rules is violate.                                             
+     * JVM accept this execution
      */
     @JCStressTest
+    @Outcome(id = "-1", expect = Expect.ACCEPTABLE, desc = "Actor1 doesn't see reference")
     @Outcome(id = "0", expect = Expect.ACCEPTABLE_INTERESTING, desc = "Object publishing before constructor executing")
     @Outcome(id = "42", expect = Expect.ACCEPTABLE, desc = "Works only actor2 then sequentially actor1")
     @State
@@ -88,6 +89,8 @@ public class volatileInConstructorNested {
         void actor1(IntResult1 r) {
             if (v != null) {
                 r.r1 = v.a;
+            } else {
+                r.r1 = -1;
             }
         }
 
