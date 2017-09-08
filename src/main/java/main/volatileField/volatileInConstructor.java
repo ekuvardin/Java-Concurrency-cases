@@ -1,4 +1,4 @@
-package main;
+package main.volatileField;
 
 import org.openjdk.jcstress.annotations.Actor;
 import org.openjdk.jcstress.annotations.Expect;
@@ -7,7 +7,7 @@ import org.openjdk.jcstress.annotations.Outcome;
 import org.openjdk.jcstress.annotations.State;
 import org.openjdk.jcstress.infra.results.IntResult1;
 
-public class volatileInConstructorNested {
+public class volatileInConstructor {
 
     /*
      * The main question can r1 == 43?

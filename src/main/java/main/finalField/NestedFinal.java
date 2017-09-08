@@ -1,9 +1,7 @@
 package main.finalField;
 
-import main.volatileInConstructorNested;
 import org.openjdk.jcstress.annotations.*;
 import org.openjdk.jcstress.infra.results.IntResult1;
-import org.openjdk.jcstress.infra.results.IntResult2;
 
 public class NestedFinal {
 
