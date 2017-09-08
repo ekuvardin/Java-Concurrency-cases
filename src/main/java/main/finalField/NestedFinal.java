@@ -16,6 +16,9 @@ public class NestedFinal {
      * temp.b = 1               // initialize ordinary field
      * v = temp;                // publish
      *
+     * One Note. You can't see id = 0 on x86 processors because it's
+     * has only StoreLoad barrier and can reorder only Noraml Store following Normal Load operation.
+     * So on x86 you can see no barriers at all in this code. All works fine without it.
      *
      */
     @JCStressTest
@@ -71,15 +74,14 @@ public class NestedFinal {
      * [StoreStore]             // According to JSR-133 Cookbook we need barries between [Normal Store] and [Volatile Store]
      * v = temp;                // publish
      *
-     * Just imagine, that we can see v.b=0
-     *
+     * Q: Can we see v.b == 0?
      *
      * write(v.b = 1)
      *    \----po---->write(v)
      *            \----sw----read(v, !=null)
      *                              \---po--read(v.b, 0)
      *
-     * transforms to hb
+     * (po, sw, po) transforms to hb
      *
      * write(v.b = 1)
      *    \----hb---->write(v)
@@ -87,11 +89,11 @@ public class NestedFinal {
      *                              \---hb--read(v.b, 0)
      *
      * and read(v.b, 0) inconsistent with previous write(v.b = 1) according to hb rules
-     * thus we can't see v.b = 0
+     * thus we can't see v.b == 0
      *
      */
     @JCStressTest
-    @Outcome(id = "0", expect = Expect.FORBIDDEN, desc = "Safe publication")
+    @Outcome(id = "0", expect = Expect.FORBIDDEN, desc = "Can't see according to hb rules")
     @Outcome(id = "1", expect = Expect.ACCEPTABLE, desc = "Fully initialized object")
     @Outcome(id = "-1", expect = Expect.ACCEPTABLE, desc = "Actor2 doesn't see reference")
     @State
