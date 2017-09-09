@@ -92,21 +92,25 @@ public class NestedFinal {
      *
      * Q: Can we see v.b == 0?
      *
+     * At least in actor2 we need this
+     * read(v, !=null)
+     *     \---po--read(v.b, 0)
+     *
+     * Trace A
      * write(v.b = 1)
      *    \----po---->write(v)
-     *            \----sw----read(v, !=null)
-     *                              \---po--read(v.b, 0)
+     *            \----sw---->read(v, !=null)
+     *                              \----po---->read(v.b, 0)
      *
      * (po, sw, po) transforms to hb
      *
      * write(v.b = 1)
      *    \----hb---->write(v)
-     *            \----hb----read(v, !=null)
-     *                              \---hb--read(v.b, 0)
+     *            \----hb---->read(v, !=null)
+     *                              \----hb---->read(v.b, 0)
      *
      * and read(v.b, 0) inconsistent with previous write(v.b = 1) according to hb rules
-     * thus we can't see v.b == 0
-     *
+     * We can't see 0
      */
     @JCStressTest
     @Outcome(id = "0", expect = Expect.FORBIDDEN, desc = "Can't see according to hb rules")

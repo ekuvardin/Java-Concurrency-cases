@@ -67,8 +67,7 @@ public class volatileInConstructor {
 
     /*
      * The main question can r1 == 42?
-     * Yes it can forn fully answer see http://cs.oswego.edu/pipermail/concurrency-interest/2013-November/011954.html
-     * 
+     * Yes it can for fully answer see http://cs.oswego.edu/pipermail/concurrency-interest/2013-November/011954.html
      * 
      *   read(a, !null)
      *      \--po--> vread(a.f, 0)
