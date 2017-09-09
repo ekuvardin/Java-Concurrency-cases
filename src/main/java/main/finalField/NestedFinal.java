@@ -8,17 +8,42 @@ public class NestedFinal {
     /*
      * Test case describes, that final initialization in constructor spread over only the class with final field.
      *
+     * Q: Can we see v.b == 0?
      * Psedocode:
+     *  write(v.b, 1)
+     *     \----po---->freeze
+     *                 \----so---->read(v!=null)
+     *                        \----po---->read(v.a,0)
+     *                               \----so---->write(v.a, 1)
+     *                                         \----po---->publish(v)
+     *
+     * transforms to
+     *  write(v.b, 1)
+     *     \----hb---->freeze
+     *                 \----so---->read(v!=null)
+     *                        \----hb---->read(v.a,0)
+     *                               \----so---->write(v.a, 1)
+     *                                         \----hb---->publish(v)
+     *
+     * So we can find execution when no rules is violated.
+     * Note1 read(v.a,0) and write(v.a, 1) linked only so not sw
+     * Note2 freeze linked with read(v!=null). Seriously. I don't know should it be HB.
+     *
+     *
+     * !!!!!!!!!!!WARRANT!!!!!!!!!!
+     * Some speculation. Be very attentive and don't understand phrases below. It's just a theory.
+     * Thrust only JVM because JVM gives some more than JSR-133 Compiler Cookbook.
+     *
+     * You can't see id = 0 on x86 processors because it(according JSR-133 Compiler Cookbook)
+     * has only StoreLoad barrier and can reorder only Normal Store following Normal Load operation.
+     *
+     * This code ( v = new OrdinaryClass()) can be represented as
      *
      * FinalClass temp = <new>  // system init
      * temp.a = 1               // initialize final field
-     * [LoadStore|StoreStore]
+     * [LoadStore|StoreStore]   // on x86 we can remove this on
      * temp.b = 1               // initialize ordinary field
      * v = temp;                // publish
-     *
-     * One Note. You can't see id = 0 on x86 processors because it's
-     * has only StoreLoad barrier and can reorder only Noraml Store following Normal Load operation.
-     * So on x86 you can see no barriers at all in this code. All works fine without it.
      *
      */
     @JCStressTest
@@ -53,7 +78,7 @@ public class NestedFinal {
         }
 
         class OrdinaryClass extends FinalClass {
-            int b;
+            volatile int b;
 
             public OrdinaryClass() {
                 super();
@@ -64,15 +89,6 @@ public class NestedFinal {
 
     /*
      * Test case describes, that final initialization in constructor spread over only the class with final field.
-     *
-     * Psedocode:
-     *
-     * FinalClass temp = <new>  // system init
-     * temp.a = 1               // initialize final field
-     * [LoadStore|StoreStore]
-     * temp.b = 1               // initialize ordinary field
-     * [StoreStore]             // According to JSR-133 Cookbook we need barries between [Normal Store] and [Volatile Store]
-     * v = temp;                // publish
      *
      * Q: Can we see v.b == 0?
      *
