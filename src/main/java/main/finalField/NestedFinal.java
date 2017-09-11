@@ -30,7 +30,7 @@ public class NestedFinal {
      * Note2 freeze linked with read(v!=null). Seriously. I don't know should it be HB.
      *
      *
-     * !!!!!!!!!!!WARRANT!!!!!!!!!!
+     * !!!!!!!!!!!WARNING!!!!!!!!!!
      * Some speculation. Be very attentive and don't understand phrases below. It's just a theory.
      * Thrust only JVM because JVM gives some more than JSR-133 Compiler Cookbook.
      *
@@ -45,6 +45,17 @@ public class NestedFinal {
      * temp.b = 1               // initialize ordinary field
      * v = temp;                // publish
      *
+     *  on x86 you see
+     *
+     *   0x0000000002b963e9: mov     dword ptr [rdx+0ch],1h  ;*putfield a
+     *                                           ; - main.FinalClass::<init>@7 (line 14)
+     *                                           ; - main.OrdinaryClass::<init>@1 (line 22)
+     *
+     *   0x0000000002b963f0: mov     dword ptr [rdx+10h],1h  ;*putfield b
+     *                                          ; - main.OrdinaryClass::<init>@7 (line 23)
+     *   0x0000000002b963f7: add     rsp,40h
+     *   0x0000000002b963fb: pop     rbp
+     *   0x0000000002b963fc: test    dword ptr [130100h],eax  ;   {poll_return}
      */
     @JCStressTest
     @Outcome(id = "0", expect = Expect.ACCEPTABLE_INTERESTING, desc = "Despite that we have final filed, save initialization doesn't cover OrdinaryClass, only FinalClass")
