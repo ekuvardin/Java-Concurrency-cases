@@ -9,26 +9,39 @@ public class NestedFinal {
      * Test case describes, that final initialization in constructor spread over only the class with final field.
      *
      * Q: Can we see v.b == 0?
-     * Psedocode:
+     * A: Yes
+     *
+     * Pseudocode:
+     * Actor1
      *  write(v.b, 1)
      *     \----po---->freeze
-     *                 \----so---->read(v!=null)
-     *                        \----po---->read(v.a,0)
-     *                               \----so---->write(v.a, 1)
-     *                                         \----po---->publish(v)
+     *                 \                              \----so---->write(v.a, 1)
+     *                 \                              \              \----po---->publish(v)
+     *                 \                              \
+     * Actor2          \                              \
+     *                 \----so---->read(v!=null)      \
+     *                                 \----po---->read(v.a,0)
+     *
      *
      * transforms to
+     * Actor1
      *  write(v.b, 1)
      *     \----hb---->freeze
-     *                 \----so---->read(v!=null)
-     *                        \----hb---->read(v.a,0)
-     *                               \----so---->write(v.a, 1)
-     *                                         \----hb---->publish(v)
+     *                 \                              \----so---->write(v.a, 1)
+     *                 \                              \              \----hb---->publish(v)
+     *                 \                              \
+     * Actor2          \                              \
+     *                 \----hb---->read(v!=null)      \
+     *                                 \----hb---->read(v.a,0)
      *
      * So we can find execution when no rules is violated.
-     * Note1 read(v.a,0) and write(v.a, 1) linked only so not sw
-     * Note2 freeze linked with read(v!=null). Seriously. I don't know should it be HB.
+     * Note2 <freeze> linked with read(v!=null) with hb according the semantics of final Fields
+     * because we have hb(w, f), hb(f, a) where
+     * w - write(v.b, 1)
+     * f - freeze
+     * a - an action a is a read or write of a field or element of an object o(means read(v!=null))
      *
+     * Thus, JVM accepts this execution
      *
      * !!!!!!!!!!!WARNING!!!!!!!!!!
      * Some speculation. Be very attentive and don't understand phrases below. It's just a theory.
@@ -102,16 +115,19 @@ public class NestedFinal {
      * Test case describes, that final initialization in constructor spread over only the class with final field.
      *
      * Q: Can we see v.b == 0?
+     * A: No
      *
      * At least in actor2 we need this
+     *
+     * Actor1
      * read(v, !=null)
      *     \---po--read(v.b, 0)
      *
-     * Trace A
-     * write(v.b = 1)
-     *    \----po---->write(v)
-     *            \----sw---->read(v, !=null)
-     *                              \----po---->read(v.b, 0)
+     * Actor2
+         * write(v.b = 1)
+         *    \----po---->write(v)
+         *            \----sw---->read(v, !=null)
+         *                              \----po---->read(v.b, 0)
      *
      * (po, sw, po) transforms to hb
      *
@@ -121,6 +137,7 @@ public class NestedFinal {
      *                              \----hb---->read(v.b, 0)
      *
      * and read(v.b, 0) inconsistent with previous write(v.b = 1) according to hb rules
+     *
      * We can't see 0
      */
     @JCStressTest

@@ -10,29 +10,37 @@ import org.openjdk.jcstress.infra.results.IntResult1;
 public class volatileInConstructor {
 
     /*
-     * The main question can r1 == 43?
-     * The only possible sequence of actions depictured below
-     * 
-     * read(v, !=null)
-     *     \----po----> vstore(v.a, 42)
-     *                    \----sw----> read(v.a, 42)
-     *                               \----po----> write(v.a, 43)
-     *                                     \----po----> write(v)
-     *                                                      \----po---->read(v.a, 43)
-     * 
-     * from read(v!=null) to write(v.a, 43) we clearly see hb(transitive closure po, sw, po)
-     * Then according through doc 17.4.5 If x and y are actions of the same thread and x comes before y in program order, then hb(x, y). 
-     * write(v) hb read(v.a, 43)
+     * W: Can r1 == 43?
+     * A: No
+     *
+     * The only possible sequence of actions are depictured below
+     *
+     * Actor1
+     *      vread(v, !=null)
+     *          \---po---> vstore(v.a, 42)
+     * Actor2               \
+     *                      \---sw--->  vread(v.a, 42)
+     *                                  \---po---> vwrite(v.a, 43)
+     *                                              \---po---> vstore(v)
+     *                                                          \---po--->vread(v.a, 43)
      * 
      * And finally
-     * read(v, !=null)
-     *     \----hb----> vstore(v.a, 42)
-     *                    \----hb----> read(v.a, 42)
-     *                               \----hb----> write(v.a, 43)
-     *                                     \----hb----> write(v)
-     *                                                      \----hb---->read(v.a, 43)
-     *                                                      
-     *  But  write(v) must be before  read(v, !=null) and we violate hb consistency                                               
+     * Actor1
+     *      vread(v, !=null)
+     *          \---hb---> vstore(v.a, 42)
+     * Actor2               \
+     *                      \---hb--->  vread(v.a, 42)
+     *                                  \---hb---> vwrite(v.a, 43)
+     *                                              \---hb---> vstore(v)
+     *                                                          \---hb--->vread(v.a, 43)
+     *
+     *  But we can not commit read(v, !=null) before store(v), according JLS 17.4.5.
+     *  (For simple replace store(v) as v=T)
+     *  We say that a read <T> of a variable <v> is allowed to observe
+     *  a write <T> to <v> if, in the happens-before partial order of the execution trace:
+     *  read<T> is not ordered before write <T> and according to your trace we violate this.
+     *
+     *  So we can't see 43.
      */
     @JCStressTest
     @Outcome(id = "1", expect = Expect.ACCEPTABLE, desc = "Works only actor1")
@@ -66,13 +74,15 @@ public class volatileInConstructor {
     }
 
     /*
-     * The main question can r1 == 42?
-     * Yes it can for fully answer see http://cs.oswego.edu/pipermail/concurrency-interest/2013-November/011954.html
+     * Q: Can we see r1 == 42?
+     * W: Yes
+     *
+     * Yes we can, for fully answer see http://cs.oswego.edu/pipermail/concurrency-interest/2013-November/011954.html
      * 
-     *   read(a, !null)
-     *      \--po--> vread(a.f, 0)
-     *                    \---so---> vstore(a.f, 42)
-     *                                    \---po---> store(a)
+     *   read(v, !null)
+     *      \--po--> vread(v.a, 0)
+     *                    \---so---> vstore(v.a, 42)
+     *                                    \---po---> store(v)
      * JVM accept this execution
      */
     @JCStressTest
