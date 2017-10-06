@@ -15,48 +15,53 @@ public class NestedFinal {
      * Actor1
      *  write(v.b, 1)
      *     \----po---->freeze
-     *                 \                              \----so---->write(v.a, 1)
-     *                 \                              \              \----po---->publish(v)
-     *                 \                              \
-     * Actor2          \                              \
-     *                 \----so---->read(v!=null)      \
-     *                                 \----po---->read(v.a,0)
+     *          \----po---->write(v.a, 1)
+     *                 \----po---->publish(v)
+     *                 \
+     *                 \
+     * Actor2          \
+     *                 \----mc---->read(tmp, v)
+     *                                 \----po---->read(tmp!=null)
+     *                                                \----po---->read(tmp.a,0)
      *
      *
      * transforms to
      * Actor1
      *  write(v.b, 1)
      *     \----hb---->freeze
-     *                 \                              \----so---->write(v.a, 1)
-     *                 \                              \              \----hb---->publish(v)
-     *                 \                              \
-     * Actor2          \                              \
-     *                 \----hb---->read(v!=null)      \
-     *                                 \----hb---->read(v.a,0)
+     *          \----hb---->write(v.a, 1)
+     *                 \----hb---->publish(v)
+     *                 \
+     *                 \
+     * Actor2          \
+     *                 \----mc---->read(tmp, v)
+     *                                 \----hb---->read(tmp!=null)
+     *                                                \----hb---->read(tmp.a,0)
      *
      * So we can find execution when no rules is violated.
-     * Note2 <freeze> linked with read(v!=null) with hb according the semantics of final Fields
-     * because we have hb(w, f), hb(f, a) where
-     * w - write(v.b, 1)
-     * f - freeze
-     * a - an action a is a read or write of a field or element of an object o(means read(v!=null))
+     * Note: mc - is memory change means write v and read v to tmp
      *
      * Thus, JVM accepts this execution
      *
      * !!!!!!!!!!!WARNING!!!!!!!!!!
-     * Some speculation. Be very attentive and don't understand phrases below. It's just a theory.
-     * Thrust only JVM because JVM gives some more than JSR-133 Compiler Cookbook.
+     * Some speculation. This topic covers JSR-133 Compiler Cookbook, JLS, Compilers.
+     * Be very attentive and don't understand phrases below. It's just a theory.
      *
-     * You can't see id = 0 on x86 processors because it(according JSR-133 Compiler Cookbook)
-     * has only StoreLoad barrier and can reorder only Normal Store following Normal Load operation.
+     * Can we see id = 0 on x86 processors? So there are two players that can influence(may be some more) on it:
+     * compilers and processors.
      *
-     * This code ( v = new OrdinaryClass()) can be represented as
+     *  Processors. Just imagine that we see instructions like below
+     *  This code ( v = new OrdinaryClass()) can be represented as
      *
-     * FinalClass temp = <new>  // system init
-     * temp.a = 1               // initialize final field
-     * [LoadStore|StoreStore]   // on x86 we can remove this on
-     * temp.b = 1               // initialize ordinary field
-     * v = temp;                // publish
+     *  FinalClass temp = <new>  // system init
+     *  temp.a = 1               // initialize final field
+     *  [LoadStore|StoreStore]   // on x86 we can remove this
+     *  temp.b = 1               // initialize ordinary field
+     *  v = temp;                // publish
+     *
+     *  We can't see b = 0 on x86 processors because it(according JSR-133 Compiler Cookbook)
+     *  has only StoreLoad barrier and can reorder only Normal Store following Normal Load operation.
+     *  (for ex. On ARM & PPC we need StoreStore barrier)
      *
      *  on x86 you see
      *
@@ -69,6 +74,13 @@ public class NestedFinal {
      *   0x0000000002b963f7: add     rsp,40h
      *   0x0000000002b963fb: pop     rbp
      *   0x0000000002b963fc: test    dword ptr [130100h],eax  ;   {poll_return}
+     *
+     *
+     *  And what about Compilers?
+     *  It depends. For ex. HotSpot makes membar on the end of constructor if exists at least one final-field
+     *  (See CompilerDependedPublication.HotSpotSafePublication)
+     *  May be in Future these guaranties cover and extends classes. Who knows. If you don't know trust only JVM.
+     *
      */
     @JCStressTest
     @Outcome(id = "0", expect = Expect.ACCEPTABLE_INTERESTING, desc = "Despite that we have final filed, save initialization doesn't cover OrdinaryClass, only FinalClass")
@@ -86,8 +98,9 @@ public class NestedFinal {
 
         @Actor
         void actor2(IntResult1 r) {
-            if (v != null) {
-                r.r1 = v.b;
+            final OrdinaryClass tmp = v; // Safe us from NPE
+            if (tmp != null) {
+                r.r1 = tmp.b;
             } else {
                 r.r1 = -1;
             }
